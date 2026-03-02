@@ -1,6 +1,5 @@
 
 from enum import Enum
-from os import name
 from fastapi import FastAPI
 from pydantic import BaseModel ,Field
 
@@ -37,11 +36,11 @@ def calculate_BMI(weight_kg:float,Heiht_m:float)->float:
     return weight_kg/(height_m**2)
 
 @app.post("/username")
-def username(User:username):
+def get_username(User:username):
     return f"Hello, {User.name} I would need to collect some information about you to give you the best advice on how to take care of your health. Please provide me with the following information"
 
 @app.post("/medicinfoept")
-def medicinfo(medicinfoAdd:medicinfo):
+def get_medicinfo(medicinfoAdd:medicinfo):
     bmi=calculate_BMI(medicinfoAdd.weight, medicinfoAdd.height)
     return{
      "bmi": bmi,
