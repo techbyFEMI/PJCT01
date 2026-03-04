@@ -1,7 +1,10 @@
 
 from enum import Enum
-from fastapi import FastAPI
+from fastapi import FastAPI,Depends
 from pydantic import BaseModel ,Field
+from sqlalchemy.orm import Session
+from db import get_db
+from models import UserMedinfo
 
 
 
@@ -40,7 +43,7 @@ def get_username(User:username):
     return f"Hello, {User.name} I would need to collect some information about you to give you the best advice on how to take care of your health. Please provide me with the following information"
 
 @app.post("/medicinfoept")
-def get_medicinfo(medicinfoAdd:medicinfo) ->dict:
+def get_medicinfo(medicinfoAdd:medicinfo, db: Session =Depends(get_db)) ->dict:
     score =0
     bmi=calculate_BMI(medicinfoAdd.weight, medicinfoAdd.height)
     if bmi < 18.5:
@@ -95,6 +98,26 @@ def get_medicinfo(medicinfoAdd:medicinfo) ->dict:
             risk_level = "Moderate Risk"
     else:
               risk_level = "Low Risk"
+
+
+    record = UserMedinfo(
+        age=medicinfoAdd.age,
+        sex=medicinfoAdd.sex,
+        weight=medicinfoAdd.weight,
+        height=medicinfoAdd.height,
+        smoke_rate=medicinfoAdd.smokeRate,
+        blood_pressure=medicinfoAdd.bloodPressure,
+        heart_rate=medicinfoAdd.heartRate,
+        body_temperature=medicinfoAdd.bodyTemperature,
+        existing_conditions=", ".join(medicinfoAdd.existingConditions),
+        bmi=round(bmi, 1),
+        risk_score=score,
+        risk_level=risk_level
+    )
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+
 
     return {
                 "score": score,
