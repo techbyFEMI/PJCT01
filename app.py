@@ -102,10 +102,10 @@ def get_medicinfo(medicinfoAdd:medicinfo, db: Session =Depends(get_db)) ->dict:
 
     record = UserMedinfo(
         age=medicinfoAdd.age,
-        sex=medicinfoAdd.sex,
+        sex=medicinfoAdd.sex.value,
         weight=medicinfoAdd.weight,
         height=medicinfoAdd.height,
-        smokeRate=medicinfoAdd.smokeRate,
+        smokeRate=medicinfoAdd.smokeRate.value,
         bloodPressure=medicinfoAdd.bloodPressure,
         heartRate=medicinfoAdd.heartRate,
         bodyTemperature=medicinfoAdd.bodyTemperature,
