@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HealthRisk API — Test Frontend</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f2ec;
+    --surface: #ffffff;
+    --ink: #1a1814;
+    --ink-muted: #7a7468;
+    --accent: #2d5a3d;
+    --accent-light: #e8f0eb;
+    --warn: #c4622d;
+    --warn-light: #fdf0e8;
+    --mid: #b8860b;
+    --mid-light: #fdf8e8;
+    --border: #e2ddd6;
+    --radius: 2px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    font-family: 'DM Mono', monospace;
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 60px 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  .header {
+    margin-bottom: 48px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 32px;
+  }
+
+  .header-tag {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 500;
+    margin-bottom: 12px;
+  }
+
+  .header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 42px;
+    line-height: 1.1;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+
+  .header h1 em {
+    font-style: italic;
+    color: var(--ink-muted);
+  }
+
+  .header p {
+    font-size: 12px;
+    color: var(--ink-muted);
+    line-height: 1.6;
+  }
+
+  /* Step indicator */
+  .steps {
+    display: flex;
+    gap: 0;
+    margin-bottom: 40px;
+  }
+
+  .step {
+    flex: 1;
+    padding: 12px 16px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    border: 1px solid var(--border);
+    border-right: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+  }
+
+  .step:last-child { border-right: 1px solid var(--border); }
+  .step.active {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+  .step.done {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* Panels */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Form */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .form-group.full { grid-column: 1 / -1; }
+
+  label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    font-weight: 500;
+  }
+
+  input, select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--ink);
+    border-radius: var(--radius);
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--accent);
+  }
+
+  input::placeholder { color: var(--ink-muted); opacity: 0.5; }
+
+  /* Tags input for conditions */
+  .tags-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 8px;
+    min-height: 44px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    cursor: text;
+    border-radius: var(--radius);
+  }
+
+  .tags-container:focus-within { border-color: var(--accent); }
+
+  .tag {
+    background: var(--accent-light);
+    color: var(--accent);
+    font-size: 11px;
+    padding: 3px 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: var(--radius);
+  }
+
+  .tag-remove {
+    cursor: pointer;
+    opacity: 0.6;
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .tag-remove:hover { opacity: 1; }
+
+  .tag-input {
+    border: none !important;
+    padding: 2px 4px !important;
+    flex: 1;
+    min-width: 120px;
+    font-size: 12px;
+  }
+
+  .tag-input:focus { border: none !important; }
+
+  .tag-hint {
+    font-size: 10px;
+    color: var(--ink-muted);
+    margin-top: 4px;
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 12px 28px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: none;
+    border-radius: var(--radius);
+    transition: all 0.2s;
+    font-weight: 500;
+  }
+
+  .btn-primary {
+    background: var(--ink);
+    color: var(--bg);
+  }
+
+  .btn-primary:hover { background: #333; }
+  .btn-primary:disabled { background: var(--border); color: var(--ink-muted); cursor: not-allowed; }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--border);
+  }
+
+  .btn-outline:hover { border-color: var(--ink); }
+
+  /* Welcome panel */
+  .welcome-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 40px;
+    text-align: center;
+  }
+
+  .welcome-card h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    margin-bottom: 12px;
+  }
+
+  .welcome-card p {
+    font-size: 12px;
+    color: var(--ink-muted);
+    line-height: 1.7;
+    margin-bottom: 28px;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .name-row {
+    display: flex;
+    gap: 12px;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  .name-row input { flex: 1; }
+
+  /* Loading */
+  .loading {
+    display: none;
+    text-align: center;
+    padding: 60px 0;
+  }
+
+  .loading.active { display: block; }
+
+  .pulse {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 1.2s ease-in-out infinite;
+    margin: 0 3px;
+  }
+
+  .pulse:nth-child(2) { animation-delay: 0.2s; }
+  .pulse:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.2; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+
+  .loading p {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-top: 20px;
+  }
+
+  /* Results */
+  .result-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px;
+  }
+
+  .stat-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 32px;
+    line-height: 1;
+    color: var(--ink);
+  }
+
+  .stat-value.high { color: var(--warn); }
+  .stat-value.moderate { color: var(--mid); }
+  .stat-value.low { color: var(--accent); }
+
+  .stat-sub {
+    font-size: 10px;
+    color: var(--ink-muted);
+    margin-top: 4px;
+  }
+
+  /* Health plan */
+  .plan-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 32px;
+    margin-bottom: 24px;
+  }
+
+  .plan-title {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .plan-content {
+    font-size: 13px;
+    line-height: 1.9;
+    color: var(--ink);
+    white-space: pre-wrap;
+  }
+
+  /* Disclaimer */
+  .disclaimer {
+    background: var(--accent-light);
+    border: 1px solid var(--accent);
+    border-left: 3px solid var(--accent);
+    padding: 14px 16px;
+    font-size: 11px;
+    color: var(--accent);
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+
+  .disclaimer.high-risk {
+    background: var(--warn-light);
+    border-color: var(--warn);
+    color: var(--warn);
+  }
+
+  /* Error */
+  .error-box {
+    background: var(--warn-light);
+    border: 1px solid var(--warn);
+    border-left: 3px solid var(--warn);
+    padding: 14px 16px;
+    font-size: 12px;
+    color: var(--warn);
+    margin-bottom: 20px;
+    display: none;
+  }
+
+  .error-box.active { display: block; }
+
+  .actions { display: flex; gap: 12px; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .fade-in { animation: fadeIn 0.4s ease forwards; }
+
+  /* Animated shiny text */
+  .shiny-text {
+    background: linear-gradient(90deg, #1a1814, #7a7468, #2d5a3d, #1a1814);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shine 2s linear infinite alternate;
+    display: inline;
+    cursor: default;
+    transition: filter 0.3s;
+  }
+
+  .shiny-text:hover {
+    filter: drop-shadow(0 0 6px rgba(45,90,61,0.4));
+  }
+
+  @keyframes shine {
+    0% { background-position: 0% center; }
+    100% { background-position: 100% center; }
+  }
+
+  /* ── Mobile Responsive ── */
+  @media (max-width: 600px) {
+    .container {
+      padding: 32px 16px;
+    }
+
+    .header {
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+    }
+
+    .header p {
+      font-size: 11px;
+    }
+
+    .steps {
+      margin-bottom: 24px;
+    }
+
+    .step {
+      padding: 10px 8px;
+      font-size: 9px;
+      letter-spacing: 1px;
+    }
+
+    .welcome-card {
+      padding: 24px 16px;
+    }
+
+    .welcome-card h2 {
+      font-size: 22px;
+    }
+
+    .name-row {
+      flex-direction: column;
+      max-width: 100%;
+    }
+
+    .name-row input {
+      width: 100%;
+    }
+
+    .name-row .btn {
+      width: 100%;
+    }
+
+    .form-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .form-group.full {
+      grid-column: 1;
+    }
+
+    .actions {
+      flex-direction: column;
+    }
+
+    .actions .btn {
+      width: 100%;
+      text-align: center;
+    }
+
+    .result-header {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .stat-value {
+      font-size: 26px;
+    }
+
+    .plan-container {
+      padding: 20px 16px;
+    }
+
+    .plan-content {
+      font-size: 12px;
+    }
+
+    .loading {
+      padding: 40px 0;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-tag">@techbyfemi · HealthRisk API</div>
+    <h1><span class="shiny-text">Health Risk Assessment</span></h1>
+    <p>WHO primary care screening guidelines · Not a medical diagnosis · Test interface</p>
+  </div>
+
+  <!-- Step indicators -->
+  <div class="steps">
+    <div class="step active" id="step-1">01 · Identify</div>
+    <div class="step" id="step-2">02 · Health Data</div>
+    <div class="step" id="step-3">03 · Results</div>
+  </div>
+
+  <!-- Panel 1: Username -->
+  <div class="panel active" id="panel-1">
+    <div class="welcome-card fade-in">
+      <h2><span class="shiny-text">Welcome.</span></h2>
+      <p>This tool assesses your general health risk based on WHO screening guidelines and generates a personalized 7-day health plan.</p>
+      <div class="name-row">
+        <input type="text" id="nameInput" placeholder="Enter your name" />
+        <button class="btn btn-primary" onclick="submitName()">Begin →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 2: Health Form -->
+  <div class="panel" id="panel-2">
+    <div class="error-box" id="formError"></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Age</label>
+        <input type="number" id="age" placeholder="35" min="1" max="120" />
+      </div>
+      <div class="form-group">
+        <label>Sex</label>
+        <select id="sex">
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Weight (kg)</label>
+        <input type="number" id="weight" placeholder="70" step="0.1" />
+      </div>
+      <div class="form-group">
+        <label>Height (m)</label>
+        <input type="number" id="height" placeholder="1.75" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label>Blood Pressure (mmHg)</label>
+        <input type="number" id="bloodPressure" placeholder="120" />
+      </div>
+      <div class="form-group">
+        <label>Heart Rate (bpm)</label>
+        <input type="number" id="heartRate" placeholder="72" />
+      </div>
+      <div class="form-group">
+        <label>Body Temperature (°C)</label>
+        <input type="number" id="bodyTemperature" placeholder="36.6" step="0.1" />
+      </div>
+      <div class="form-group">
+        <label>Smoking Status</label>
+        <select id="smokeRate">
+          <option value="never">Never</option>
+          <option value="moderate">Former / Moderate</option>
+          <option value="frequently">Current / Frequently</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Existing Conditions</label>
+        <div class="tags-container" id="tagsContainer" onclick="document.getElementById('tagInput').focus()">
+          <input class="tag-input" id="tagInput" placeholder="Type condition and press Enter..." />
+        </div>
+        <span class="tag-hint">Press Enter to add each condition. Leave empty if none.</span>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="submitHealthData()" id="submitBtn">Analyse Risk →</button>
+      <button class="btn btn-outline" onclick="goBack()">← Back</button>
+    </div>
+  </div>
+
+  <!-- Panel 3: Results -->
+  <div class="panel" id="panel-3">
+    <div class="loading" id="loadingState">
+      <div>
+        <span class="pulse"></span>
+        <span class="pulse"></span>
+        <span class="pulse"></span>
+      </div>
+      <p>Analysing your health profile...</p>
+    </div>
+    <div id="resultsContent" style="display:none">
+      <div class="result-header fade-in" id="statsRow"></div>
+      <div id="disclaimerBox"></div>
+      <div class="plan-container fade-in">
+        <div class="plan-title">Your Personalised 7-Day Health Plan</div>
+        <div class="plan-content" id="planContent"></div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="resetAll()">New Assessment →</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let userName = '';
+  let conditions = [];
+
+  // Tag input
+  document.getElementById('tagInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = this.value.trim();
+      if (val && !conditions.includes(val)) {
+        conditions.push(val);
+        renderTags();
+        this.value = '';
+      }
+    }
+  });
+
+  function renderTags() {
+    const container = document.getElementById('tagsContainer');
+    const input = document.getElementById('tagInput');
+    container.innerHTML = '';
+    conditions.forEach((c, i) => {
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.innerHTML = `${c} <span class="tag-remove" onclick="removeTag(${i})">×</span>`;
+      container.appendChild(tag);
+    });
+    container.appendChild(input);
+  }
+
+  function removeTag(i) {
+    conditions.splice(i, 1);
+    renderTags();
+  }
+
+  function setStep(n) {
+    [1,2,3].forEach(i => {
+      document.getElementById(`step-${i}`).className = 'step' + (i < n ? ' done' : i === n ? ' active' : '');
+      document.getElementById(`panel-${i}`).className = 'panel' + (i === n ? ' active' : '');
+    });
+  }
+
+  function submitName() {
+    const name = document.getElementById('nameInput').value.trim();
+    if (!name) return;
+    userName = name;
+
+    fetch('http://127.0.0.1:8000/username', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    }).catch(() => {});
+
+    setStep(2);
+  }
+
+  function goBack() { setStep(1); }
+
+  function showError(msg) {
+    const el = document.getElementById('formError');
+    el.textContent = msg;
+    el.classList.add('active');
+  }
+
+  function hideError() {
+    document.getElementById('formError').classList.remove('active');
+  }
+
+  async function submitHealthData() {
+    hideError();
+    const btn = document.getElementById('submitBtn');
+
+    const age = parseInt(document.getElementById('age').value);
+    const weight = parseFloat(document.getElementById('weight').value);
+    const height = parseFloat(document.getElementById('height').value);
+    const bloodPressure = parseFloat(document.getElementById('bloodPressure').value);
+    const heartRate = parseFloat(document.getElementById('heartRate').value);
+    const bodyTemperature = parseFloat(document.getElementById('bodyTemperature').value);
+
+    if (!age || !weight || !height || !bloodPressure || !heartRate || !bodyTemperature) {
+      showError('Please fill in all fields before submitting.');
+      return;
+    }
+
+    const payload = {
+      age,
+      sex: document.getElementById('sex').value,
+      weight,
+      height,
+      smokeRate: document.getElementById('smokeRate').value,
+      bloodPressure,
+      heartRate,
+      bodyTemperature,
+      existingConditions: conditions
+    };
+
+    btn.disabled = true;
+    btn.textContent = 'Analysing...';
+    setStep(3);
+    document.getElementById('loadingState').classList.add('active');
+    document.getElementById('resultsContent').style.display = 'none';
+
+    try {
+      const res = await fetch('http://127.0.0.1:8000/medicinfoept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || 'Something went wrong');
+      }
+
+      renderResults(data);
+
+    } catch (err) {
+      setStep(2);
+      showError(`Error: ${err.message}. Make sure your API is running on http://127.0.0.1:8000`);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Analyse Risk →';
+      document.getElementById('loadingState').classList.remove('active');
+    }
+  }
+
+  function renderResults(data) {
+    const riskLevel = data.risk_level || '';
+    const riskClass = riskLevel.toLowerCase().includes('high') ? 'high'
+                    : riskLevel.toLowerCase().includes('moderate') ? 'moderate' : 'low';
+
+    // Stats
+    document.getElementById('statsRow').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-label">Risk Level</div>
+        <div class="stat-value ${riskClass}">${riskLevel.replace(' Risk','')}</div>
+        <div class="stat-sub">Overall assessment</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Risk Score</div>
+        <div class="stat-value">${data.risk_score}</div>
+        <div class="stat-sub">Composite points</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">BMI</div>
+        <div class="stat-value">${data.bmi}</div>
+        <div class="stat-sub">Body mass index</div>
+      </div>
+    `;
+
+    // Disclaimer
+    const isHigh = riskClass === 'high';
+    document.getElementById('disclaimerBox').innerHTML = `
+      <div class="disclaimer ${isHigh ? 'high-risk' : ''}" style="margin-bottom:24px">
+        ${isHigh ? '⚠️ High risk detected. Please consult a healthcare professional as soon as possible. ' : ''}
+        ${data.disclaimer}
+      </div>
+    `;
+
+    // Plan
+    document.getElementById('planContent').textContent = data.health_plan || 'No plan returned.';
+
+    document.getElementById('resultsContent').style.display = 'block';
+  }
+
+  function resetAll() {
+    conditions = [];
+    renderTags();
+    document.getElementById('nameInput').value = '';
+    ['age','weight','height','bloodPressure','heartRate','bodyTemperature'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    setStep(1);
+  }
+
+  // Enter key on name input
+  document.getElementById('nameInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitName();
+  });
+</script>
+</body>
+</html>
